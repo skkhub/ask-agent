@@ -1,0 +1,24 @@
+# 依赖
+node_modules/
+
+# 环境变量（含 API 密钥）
+.env
+.env.*
+!.env.example
+
+# 日志与调试
+*.log
+debug.log
+npm-debug.log*
+
+# 构建产物
+dist/
+build/
+*.tsbuildinfo
+sea-prep.blob
+sea-config.json
+
+# 系统/编辑器
+.DS_Store
+.idea/
+*.swp

@@ -1,0 +1,24 @@
+{
+  "language": "English",
+  "router": "fast",
+  "stream": false,
+  "shellRequireConfirm": true,
+  "shellWhitelist": [],
+  "tavilyApiKey": "${TAVILY_API_KEY}",
+  "profiles": {
+    "fast": {
+      "provider": "openai",
+      "baseURL": "https://api.deepseek.com",
+      "apiKey": "${DEEPSEEK_API_KEY}",
+      "model": "deepseek-v4-flash",
+      "description": "Daily chat, casual conversation, simple Q&A, quick lookups"
+    },
+    "professional": {
+      "provider": "openai",
+      "baseURL": "https://api.deepseek.com",
+      "apiKey": "${DEEPSEEK_API_KEY}",
+      "model": "deepseek-v4-pro",
+      "description": "Research, information synthesis, multi-step reasoning, complex tasks, coding, architecture, deep analysis, long-form content"
+    }
+  }
+}

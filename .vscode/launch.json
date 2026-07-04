@@ -1,0 +1,17 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "type": "node",
+      "request": "launch",
+      "name": "调试 agent",
+      "program": "${workspaceFolder}/src/cli.ts",
+      "console": "integratedTerminal",
+      "skipFiles": ["<node_internals>/**"],
+      "args": ["北京今日天气", "--config", "${workspaceFolder}/config.json"],
+      // "env": {
+      //   "DEEPSEEK_API_KEY": "sk-在这里填你的密钥"
+      // }
+    }
+  ]
+}

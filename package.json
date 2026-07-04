@@ -1,0 +1,37 @@
+{
+  "name": "ask-agent",
+  "version": "1.0.0",
+  "description": "A convenient CLI agent that supports automatic model routing, self-correction, and pipeline-friendly workflows.",
+  "license": "MIT",
+  "author": "",
+  "type": "module",
+  "bin": {
+    "ask": "src/cli.ts"
+  },
+  "engines": {
+    "node": ">=23.6"
+  },
+  "scripts": {
+    "start": "node src/cli.ts",
+    "typecheck": "tsc --noEmit",
+    "build": "node scripts/build-sea.mjs",
+    "build:bundle": "node scripts/build-bundle.mjs"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.109.0",
+    "@tavily/core": "^0.7.6",
+    "chalk": "^5.6.0",
+    "marked": "^15.0.12",
+    "marked-terminal": "^7.3.0",
+    "openai": "^6.45.0",
+    "ora": "^9.0.0",
+    "string-width": "^4.2.3"
+  },
+  "devDependencies": {
+    "@types/marked-terminal": "^6.1.1",
+    "@types/node": "^26.1.0",
+    "esbuild": "^0.25.0",
+    "postject": "^1.0.0-alpha.6",
+    "typescript": "^6.0.3"
+  }
+}
