@@ -83,7 +83,55 @@ download_binary() {
   chmod +x "$BIN"
 }
 
+PATH_LINE='export PATH="$HOME/.ask/bin:$PATH"'
+
+shell_rc_file() {
+  case "${SHELL:-}" in
+    */zsh) printf '%s\n' "$HOME/.zshrc" ;;
+    */bash)
+      if [[ -f "$HOME/.bashrc" ]]; then
+        printf '%s\n' "$HOME/.bashrc"
+      elif [[ -f "$HOME/.bash_profile" ]]; then
+        printf '%s\n' "$HOME/.bash_profile"
+      else
+        printf '%s\n' "$HOME/.bashrc"
+      fi
+      ;;
+    *) return 1 ;;
+  esac
+}
+
+ensure_path() {
+  local rc
+  if ! rc="$(shell_rc_file)"; then
+    warn "Unknown shell (${SHELL:-unset}); add ~/.ask/bin to PATH manually:"
+    warn "  ${PATH_LINE}"
+    PATH_CONFIGURED=0
+    return
+  fi
+
+  if [[ -f "$rc" ]] && grep -qF '.ask/bin' "$rc"; then
+    info "~/.ask/bin already in ${rc}"
+  else
+    {
+      printf '\n# Added by ask install\n'
+      printf '%s\n' "$PATH_LINE"
+    } >>"$rc"
+    info "Added ~/.ask/bin to PATH in ${rc}"
+  fi
+  PATH_CONFIGURED=1
+  PATH_RC="$rc"
+}
+
 print_success() {
+  local path_note
+  if [[ "${PATH_CONFIGURED:-0}" -eq 1 ]]; then
+    path_note="PATH updated in ${PATH_RC}. Run: source ${PATH_RC}"
+  else
+    path_note='Add ~/.ask/bin to PATH manually:
+  export PATH="$HOME/.ask/bin:$PATH"'
+  fi
+
   cat <<EOF
 
 Installation complete!
@@ -91,8 +139,7 @@ Installation complete!
 Install directory: ${INSTALL_DIR}
 Executable: ${BIN}
 
-Add ~/.ask/bin to PATH, e.g. in ~/.zshrc or ~/.bashrc:
-  export PATH="\$HOME/.ask/bin:\$PATH"
+${path_note}
 
 Next steps:
   1. Edit ${INSTALL_DIR}/config.json — model profiles and API key references
@@ -131,6 +178,7 @@ main() {
   fetch_repo_file ".env.example" "$INSTALL_DIR/.env.example"
 
   download_binary
+  ensure_path
   print_success
 }
 

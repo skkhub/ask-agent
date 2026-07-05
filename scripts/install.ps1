@@ -59,6 +59,68 @@ function Download-Binary([string]$Repo, [string]$Version) {
     Invoke-WebRequest -Uri $url -OutFile $AskBin -UseBasicParsing
 }
 
+function Ensure-Path {
+    $profilePath = $PROFILE
+    $pathLine = '$env:Path = "$env:USERPROFILE\.ask\bin;" + $env:Path'
+
+    if (-not $profilePath) {
+        Write-Warn "Could not determine PowerShell profile; add ~/.ask/bin to PATH manually:"
+        Write-Warn "  $pathLine"
+        $script:PathConfigured = $false
+        return
+    }
+
+    if ((Test-Path $profilePath) -and (Select-String -Path $profilePath -Pattern '\.ask\\bin' -Quiet)) {
+        Write-Info "~/.ask/bin already in $profilePath"
+    } else {
+        $profileDir = Split-Path -Parent $profilePath
+        if (-not (Test-Path $profileDir)) {
+            New-Item -ItemType Directory -Force -Path $profileDir | Out-Null
+        }
+        @'
+
+# Added by ask install
+$env:Path = "$env:USERPROFILE\.ask\bin;" + $env:Path
+'@ | Add-Content -Path $profilePath
+        Write-Info "Added ~/.ask/bin to PATH in $profilePath"
+    }
+
+    $env:Path = "$AskBinDir;" + $env:Path
+    $script:PathConfigured = $true
+    $script:PathRc = $profilePath
+}
+
+function Write-Success {
+    $pathNote = if ($script:PathConfigured) {
+        "PATH updated in $($script:PathRc). Run: . $($script:PathRc)"
+    } else {
+        @"
+Add ~/.ask/bin to PATH manually:
+  `$env:Path = "`$env:USERPROFILE\.ask\bin;" + `$env:Path
+"@
+    }
+
+    Write-Host @"
+
+Installation complete!
+
+Install directory: $AskHome
+Executable: $AskBin
+
+$pathNote
+
+Next steps:
+  1. Edit $AskHome\config.json — model profiles and API key references
+  2. Copy and edit environment file:
+       Copy-Item $AskHome\.env.example $AskHome\.env
+     Fill in AI API keys (e.g. DEEPSEEK_API_KEY, ANTHROPIC_API_KEY)
+
+Then run:
+  ask --help
+
+"@
+}
+
 Get-PlatformArtifact
 Write-Info "Platform: $Platform (artifact: $Artifact)"
 
@@ -81,24 +143,5 @@ Write-Info "Copying .env.example …"
 Copy-RepoFile ".env.example" (Join-Path $AskHome ".env.example") $Repo $Version
 
 Download-Binary $Repo $Version
-
-Write-Host @"
-
-Installation complete!
-
-Install directory: $AskHome
-Executable: $AskBin
-
-Add ~/.ask/bin to PATH, e.g. in PowerShell profile:
-  `$env:Path = "`$env:USERPROFILE\.ask\bin;" + `$env:Path
-
-Next steps:
-  1. Edit $AskHome\config.json — model profiles and API key references
-  2. Copy and edit environment file:
-       Copy-Item $AskHome\.env.example $AskHome\.env
-     Fill in AI API keys (e.g. DEEPSEEK_API_KEY, ANTHROPIC_API_KEY)
-
-Then run:
-  ask --help
-
-"@
+Ensure-Path
+Write-Success

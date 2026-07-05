@@ -23,21 +23,13 @@ The install scripts in [`scripts/`](scripts/) set up `~/.ask`, copy `config.json
 **macOS / Linux:**
 
 ```bash
-# One-liner
 curl -fsSL https://raw.githubusercontent.com/skkhub/ask-agent/main/scripts/install.sh | bash
-
-# Or from a local clone
-./scripts/install.sh
 ```
 
 **Windows (PowerShell):**
 
 ```powershell
-# One-liner
 irm https://raw.githubusercontent.com/skkhub/ask-agent/main/scripts/install.ps1 | iex
-
-# Or from a local clone
-.\scripts\install.ps1
 ```
 
 **Supported platforms** (prebuilt binaries):
@@ -52,16 +44,24 @@ Intel Mac (`darwin-x64`) and Linux arm64 have no prebuilt package — [build fro
 
 **After install:**
 
-1. Add the binary to your PATH:
+1. Verify `ask` is on PATH (the install script configures this automatically):
+
+   ```bash
+   ask --help
+   ```
+
+   If you get `command not found`, add the binary manually and reload your shell:
 
    ```bash
    export PATH="$HOME/.ask/bin:$PATH"   # add to ~/.zshrc or ~/.bashrc
+   source ~/.zshrc                      # or ~/.bashrc
    ```
 
    On Windows (PowerShell profile):
 
    ```powershell
    $env:Path = "$env:USERPROFILE\.ask\bin;" + $env:Path
+   . $PROFILE
    ```
 
 2. Edit `~/.ask/config.json` — model profiles and API key references.
@@ -70,17 +70,6 @@ Intel Mac (`darwin-x64`) and Linux arm64 have no prebuilt package — [build fro
    ```bash
    cp ~/.ask/.env.example ~/.ask/.env
    ```
-
-Then run `ask --help` to verify.
-
-**Update or remove** an existing installation:
-
-```bash
-ask update                    # download latest release
-ask update --version v1.0.0   # install a specific version
-ask uninstall                 # remove ~/.ask (prompts for confirmation)
-ask uninstall -y              # remove without confirmation
-```
 
 ### Install from source (development)
 
@@ -97,6 +86,26 @@ npm link               # optional: install `ask` globally
 Without `npm link`, use `node src/cli.ts …` or `npm start -- …`.
 
 Default config path: `~/.ask/config.json` (or place `config.json` / `.env` in the working directory). See [Configuration](#configuration-configjson).
+
+## Update
+
+Download the latest release binary to `~/.ask/bin` (config and `.env` are preserved):
+
+```bash
+ask update                    # latest release
+ask update --version v1.0.0   # specific version
+```
+
+Requires `ask` already on PATH from a prior [installation](#installation).
+
+## Uninstall
+
+Remove the entire `~/.ask` directory (binary, `config.json`, `.env`):
+
+```bash
+ask uninstall      # prompts for confirmation
+ask uninstall -y   # skip confirmation
+```
 
 ## Quick start
 

@@ -1,5 +1,6 @@
-import { access, chmod, mkdir, readdir, rename, rm } from "node:fs/promises";
+import { access, chmod, mkdir, readdir, readFile, rename, rm, writeFile } from "node:fs/promises";
 import { createWriteStream } from "node:fs";
+import { homedir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { pipeline } from "node:stream/promises";
 import { Readable } from "node:stream";
@@ -164,6 +165,65 @@ async function removeTreeExcept(
   }
 }
 
+const ASK_INSTALL_MARKER = "# Added by ask install";
+
+function shellPathCandidates(home: string): string[] {
+  if (process.platform === "win32") {
+    return [
+      join(home, "Documents", "PowerShell", "Microsoft.PowerShell_profile.ps1"),
+      join(
+        home,
+        "Documents",
+        "WindowsPowerShell",
+        "Microsoft.PowerShell_profile.ps1",
+      ),
+    ];
+  }
+  return [join(home, ".zshrc"), join(home, ".bashrc"), join(home, ".bash_profile")];
+}
+
+function isAskPathLine(line: string): boolean {
+  if (line.includes(ASK_INSTALL_MARKER)) return true;
+  if (line.includes(".ask/bin")) return true;
+  if (line.includes(String.raw`.ask\bin`)) return true;
+  return false;
+}
+
+function stripAskPathBlock(content: string): { cleaned: string; changed: boolean } {
+  const lines = content.split(/\r?\n/);
+  const filtered = lines.filter((line) => !isAskPathLine(line));
+  if (filtered.length === lines.length) {
+    return { cleaned: content, changed: false };
+  }
+  while (filtered.length > 0 && filtered[filtered.length - 1] === "") {
+    filtered.pop();
+  }
+  if (filtered.length === 0) {
+    return { cleaned: "", changed: true };
+  }
+  return { cleaned: `${filtered.join("\n")}\n`, changed: true };
+}
+
+async function cleanupShellPath(): Promise<void> {
+  const home = homedir();
+  for (const file of shellPathCandidates(home)) {
+    if (!(await pathExists(file))) continue;
+    try {
+      const raw = await readFile(file, "utf8");
+      const { cleaned, changed } = stripAskPathBlock(raw);
+      if (!changed) continue;
+      if (cleaned.length === 0) {
+        await rm(file, { force: true });
+      } else {
+        await writeFile(file, cleaned, "utf8");
+      }
+      ui.traceLine(msg().uninstallPathRemoved(file));
+    } catch {
+      ui.traceLine(msg().uninstallPathCleanupFailed(file));
+    }
+  }
+}
+
 export async function cmdUninstall(opts: SetupOpts): Promise<void> {
   const home = askHome();
   if (!(await pathExists(home))) {
@@ -178,6 +238,8 @@ export async function cmdUninstall(opts: SetupOpts): Promise<void> {
       return;
     }
   }
+
+  await cleanupShellPath();
 
   const binPath = askBinPath();
   const runningFromBin =

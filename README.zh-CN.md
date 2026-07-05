@@ -23,21 +23,13 @@ TypeScript 编写的轻量 CLI agent。支持 **OpenAI 格式**（DeepSeek / Kim
 **macOS / Linux：**
 
 ```bash
-# 一键安装
 curl -fsSL https://raw.githubusercontent.com/skkhub/ask-agent/main/scripts/install.sh | bash
-
-# 或本地 clone 后运行
-./scripts/install.sh
 ```
 
 **Windows（PowerShell）：**
 
 ```powershell
-# 一键安装
 irm https://raw.githubusercontent.com/skkhub/ask-agent/main/scripts/install.ps1 | iex
-
-# 或本地 clone 后运行
-.\scripts\install.ps1
 ```
 
 **支持的平台**（预编译二进制）：
@@ -52,16 +44,24 @@ Intel Mac（`darwin-x64`）与 Linux arm64 无预编译包——请[从源码构
 
 **安装后：**
 
-1. 将二进制加入 PATH：
+1. 验证 `ask` 命令可用（安装脚本已自动配置 PATH）：
+
+   ```bash
+   ask --help
+   ```
+
+   若提示 `command not found`，手动将二进制加入 PATH 并重新加载 shell：
 
    ```bash
    export PATH="$HOME/.ask/bin:$PATH"   # 写入 ~/.zshrc 或 ~/.bashrc
+   source ~/.zshrc                      # 或 ~/.bashrc
    ```
 
    Windows（PowerShell 配置文件）：
 
    ```powershell
    $env:Path = "$env:USERPROFILE\.ask\bin;" + $env:Path
+   . $PROFILE
    ```
 
 2. 编辑 `~/.ask/config.json`——模型档案与 API 密钥引用。
@@ -70,17 +70,6 @@ Intel Mac（`darwin-x64`）与 Linux arm64 无预编译包——请[从源码构
    ```bash
    cp ~/.ask/.env.example ~/.ask/.env
    ```
-
-然后运行 `ask --help` 验证安装。
-
-**更新或卸载**已有安装：
-
-```bash
-ask update                    # 下载最新 release
-ask update --version v1.0.0   # 安装指定版本
-ask uninstall                 # 删除 ~/.ask（需确认）
-ask uninstall -y              # 跳过确认直接删除
-```
 
 ### 从源码安装（开发）
 
@@ -97,6 +86,26 @@ npm link               # 可选：把 ask 装成全局命令
 未 `npm link` 时用 `node src/cli.ts …` 或 `npm start -- …` 等价调用。
 
 默认配置路径：`~/.ask/config.json`（也可在工作目录放置 `config.json` / `.env`）。详见[配置](#配置configjson)。
+
+## 更新
+
+下载最新 release 二进制到 `~/.ask/bin`（保留 `config.json` 与 `.env`）：
+
+```bash
+ask update                    # 最新 release
+ask update --version v1.0.0   # 指定版本
+```
+
+需已通过[安装](#安装)将 `ask` 加入 PATH。
+
+## 卸载
+
+删除整个 `~/.ask` 目录（含二进制、`config.json`、`.env`）：
+
+```bash
+ask uninstall      # 需确认
+ask uninstall -y   # 跳过确认
+```
 
 ## 快速开始
 

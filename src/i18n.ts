@@ -70,6 +70,8 @@ export interface Messages {
   uninstallNotFound: string;
   uninstallSuccess: string;
   uninstallPartialWindows(home: string): string;
+  uninstallPathRemoved(file: string): string;
+  uninstallPathCleanupFailed(file: string): string;
 
   // Config
   configHint: string;
@@ -346,7 +348,7 @@ Usage:
   ask uninstall [-y]
 
 Options:
-  -y, --yes   Skip confirmation (removes config, .env, and binary)
+  -y, --yes   Skip confirmation (removes config, .env, binary, and PATH entries)
   -h, --help  Show this help
 `
       : `ask uninstall — 删除整个 ~/.ask 目录
@@ -355,7 +357,7 @@ Options:
   ask uninstall [-y]
 
 选项：
-  -y, --yes   跳过确认（删除配置、.env 与二进制）
+  -y, --yes   跳过确认（删除配置、.env、二进制及 PATH 条目）
   -h, --help  显示帮助
 `,
 
@@ -399,8 +401,8 @@ Options:
     },
     uninstallConfirm(home) {
       return en
-        ? `This will permanently delete ${home} (config, .env, binary). Continue?`
-        : `将永久删除 ${home}（含配置、.env、二进制）。继续？`;
+        ? `This will permanently delete ${home} (config, .env, binary) and remove ~/.ask/bin from shell PATH. Continue?`
+        : `将永久删除 ${home}（含配置、.env、二进制），并从 shell PATH 中移除 ~/.ask/bin。继续？`;
     },
     uninstallCancelled: en ? "Uninstall cancelled." : "已取消卸载。",
     uninstallNotFound: en
@@ -411,6 +413,16 @@ Options:
       return en
         ? `Removed config and data from ${home}. The running ask.exe could not be deleted — close this terminal and delete ${home} manually.`
         : `已删除 ${home} 中的配置与数据。正在运行的 ask.exe 无法删除 — 请关闭终端后手动删除 ${home}。`;
+    },
+    uninstallPathRemoved(file) {
+      return en
+        ? `Removed ~/.ask/bin PATH entry from ${file}`
+        : `已从 ${file} 移除 ~/.ask/bin PATH 条目`;
+    },
+    uninstallPathCleanupFailed(file) {
+      return en
+        ? `Could not update PATH in ${file} — remove ~/.ask/bin manually.`
+        : `无法更新 ${file} 中的 PATH — 请手动移除 ~/.ask/bin。`;
     },
 
     configHint: en
