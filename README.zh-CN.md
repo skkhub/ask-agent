@@ -14,15 +14,91 @@ TypeScript 编写的轻量 CLI agent。支持 **OpenAI 格式**（DeepSeek / Kim
 - **多模型自动路由**：轻量模型判断问题类型与思考深度（off/low/high），转给对应档案处理；`-p`/`-e` 可跳过路由直接指定
 - **轻量**：参数解析用 Node 内置 `parseArgs`，无 CLI 框架依赖
 
-## 使用
+## 安装
+
+### 安装脚本（推荐）
+
+[`scripts/`](scripts/) 下的安装脚本会创建 `~/.ask`、复制 `config.json` 与 `.env.example`，并从 GitHub Releases 下载**独立二进制**——目标机器**无需**安装 Node.js。
+
+**macOS / Linux：**
+
+```bash
+# 一键安装
+curl -fsSL https://raw.githubusercontent.com/skkhub/ask-agent/main/scripts/install.sh | bash
+
+# 或本地 clone 后运行
+./scripts/install.sh
+```
+
+**Windows（PowerShell）：**
+
+```powershell
+# 一键安装
+irm https://raw.githubusercontent.com/skkhub/ask-agent/main/scripts/install.ps1 | iex
+
+# 或本地 clone 后运行
+.\scripts\install.ps1
+```
+
+**支持的平台**（预编译二进制）：
+
+| 平台 | 产物 |
+|---|---|
+| macOS Apple Silicon | `ask-macos-arm64` |
+| Linux x64 | `ask-linux-x64` |
+| Windows x64 | `ask-windows-x64.exe` |
+
+Intel Mac（`darwin-x64`）与 Linux arm64 无预编译包——请[从源码构建](#构建可执行文件)。
+
+**安装后：**
+
+1. 将二进制加入 PATH：
+
+   ```bash
+   export PATH="$HOME/.ask/bin:$PATH"   # 写入 ~/.zshrc 或 ~/.bashrc
+   ```
+
+   Windows（PowerShell 配置文件）：
+
+   ```powershell
+   $env:Path = "$env:USERPROFILE\.ask\bin;" + $env:Path
+   ```
+
+2. 编辑 `~/.ask/config.json`——模型档案与 API 密钥引用。
+3. 复制并填写 API 密钥：
+
+   ```bash
+   cp ~/.ask/.env.example ~/.ask/.env
+   ```
+
+然后运行 `ask --help` 验证安装。
+
+**更新或卸载**已有安装：
+
+```bash
+ask update                    # 下载最新 release
+ask update --version v1.0.0   # 安装指定版本
+ask uninstall                 # 删除 ~/.ask（需确认）
+ask uninstall -y              # 跳过确认直接删除
+```
+
+### 从源码安装（开发）
 
 需要 Node.js ≥ 23.6（原生运行 TypeScript）。
 
 ```bash
+git clone https://github.com/skkhub/ask-agent.git
+cd ask-agent
 npm install
 cp .env.example .env   # 填入密钥；或直接 export 环境变量
 npm link               # 可选：把 ask 装成全局命令
 ```
+
+未 `npm link` 时用 `node src/cli.ts …` 或 `npm start -- …` 等价调用。
+
+默认配置路径：`~/.ask/config.json`（也可在工作目录放置 `config.json` / `.env`）。详见[配置](#配置configjson)。
+
+## 快速开始
 
 三种用法：
 
@@ -38,8 +114,6 @@ git diff | ask "帮我写一条 commit message"
 # 3. 交互模式（REPL）：不带参数直接运行
 ask          # 或 npm start
 ```
-
-未 `npm link` 时用 `node src/cli.ts …` 或 `npm start -- …` 等价调用。
 
 ### 选项
 
@@ -60,13 +134,7 @@ ask          # 或 npm start
 | `ask update [--version <ver>]` | 从 [skkhub/ask-agent](https://github.com/skkhub/ask-agent) 下载最新（或指定）release 二进制到 `~/.ask/bin` |
 | `ask uninstall [-y]` | 删除整个 `~/.ask` 目录（含配置、`.env`、二进制）。默认需确认，`-y` 跳过确认 |
 
-首次安装可用 `scripts/install.sh`（macOS/Linux）或 `scripts/install.ps1`（Windows），默认从 `skkhub/ask-agent` Release 安装；设置 `ASK_REPO=owner/repo` 可覆盖（如 fork 仓库）。
-
-将 `~/.ask/bin` 加入 PATH：
-
-```bash
-export PATH="$HOME/.ask/bin:$PATH"
-```
+首次安装见[安装](#安装)中的 `scripts/install.sh` / `scripts/install.ps1`。
 
 ### 输出通道约定
 
@@ -102,13 +170,13 @@ export PATH="$HOME/.ask/bin:$PATH"
 
 ```jsonc
 {
-  "language": "中文",
-  "router": "fast",
-  "stream": false,
+  "language": "中文",    // "English"（默认）或 "中文"
+  "router": "fast",         // 路由用档案（选便宜/快的）
+  "stream": false,          // REPL 输出：false = 每轮结束后 Markdown；true = 流式纯文本
   "maxTurns": 30,
   "shellRequireConfirm": true,
   "shellWhitelist": [],
-  "tavilyApiKey": "${TAVILY_API_KEY}",
+  "tavilyApiKey": "${TAVILY_API_KEY}",   // 可选，供 web_search / web_extract / web_crawl
   "profiles": {
     "fast": { "provider": "openai", "baseURL": "https://api.deepseek.com", "apiKey": "${DEEPSEEK_API_KEY}", "model": "deepseek-v4-flash", "description": "日常对话、简单问答、快速查询" },
     "pro":  { "provider": "anthropic", "baseURL": "https://api.anthropic.com", "apiKey": "${ANTHROPIC_API_KEY}", "model": "claude-sonnet-4-5", "description": "复杂任务、写代码、深度分析" }
@@ -151,31 +219,23 @@ npm run build:bundle   # 产物：dist/bundle.cjs
 - `ask-linux-x64`
 - `ask-windows-x64.exe`
 
-### 安装与更新
+### 独立二进制配置
 
-```bash
-curl -fsSL https://raw.githubusercontent.com/skkhub/ask-agent/main/scripts/install.sh | bash
-# 或本地：./scripts/install.sh
-```
+首次安装：使用 [`scripts/install.sh`](scripts/install.sh) 或 [`scripts/install.ps1`](scripts/install.ps1)——见[安装](#安装)。
 
-默认仓库：`skkhub/ask-agent`。fork 可通过 `ASK_REPO=owner/repo` 覆盖。
-
-```bash
-ask update                    # 下载最新 release
-ask update --version v1.0.0   # 安装指定版本
-ask uninstall                 # 删除 ~/.ask（需确认）
-ask uninstall -y              # 跳过确认
-```
-
-首次使用前（若未用 install 脚本）：
+二进制**不包含** `config.json`。若手动复制二进制（未用安装脚本）：
 
 ```bash
 mkdir -p ~/.ask
 cp config.json ~/.ask/
-cp .env ~/.ask/
+cp .env ~/.ask/          # 或直接 export 环境变量
 ```
 
-默认配置路径：`~/.ask/config.json`；默认 env 文件：`~/.ask/.env`
+也可在工作目录放置 `config.json` 与 `.env`。
+
+默认配置路径（未指定 `--config`）：`~/.ask/config.json`
+
+默认 env 文件：`~/.ask/.env`
 
 macOS Gatekeeper（从 CI 下载的二进制）：
 
@@ -183,9 +243,9 @@ macOS Gatekeeper（从 CI 下载的二进制）：
 xattr -d com.apple.quarantine dist/ask
 ```
 
-## 调试
+## 调试（VS Code 断点）
 
-`.vscode/launch.json` 已配置：设断点后按 `F5` 启动。命令行：
+`.vscode/launch.json` 已配置——设断点后按 `F5` 启动（可在 `args` 中加入一次性任务）。命令行：
 
 ```bash
 node --inspect-brk src/cli.ts "任务"
@@ -193,13 +253,13 @@ node --inspect-brk src/cli.ts "任务"
 
 ## 文件结构
 
-- `src/cli.ts` — CLI 入口
+- `src/cli.ts` — CLI 入口：参数解析、一次性执行 / REPL 调度
 - `src/setup.ts` — update / uninstall 生命周期命令
-- `src/agent.ts` — agent 循环
+- `src/agent.ts` — agent 循环：模型 → 工具 → 模型，纠错与轮次限制
 - `src/i18n.ts` — 多语言文案（English / 中文）
-- `src/providers.ts` — Provider 抽象层
-- `src/router.ts` — 自动路由
+- `src/providers.ts` — Provider 抽象层（OpenAI / Anthropic）
+- `src/router.ts` — 基于 description 的档案路由
 - `src/tools.ts` — 工具实现、shell 白名单
-- `src/ui.ts` — 输出通道
-- `src/render.ts` — Markdown 渲染
-- `src/config.ts` — 配置加载
+- `src/ui.ts` — 输出通道（stderr 进度 / stdout 结果）
+- `src/render.ts` — 终端 Markdown 渲染
+- `src/config.ts` — 配置加载与 `${ENV}` 展开

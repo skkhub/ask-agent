@@ -2,9 +2,9 @@
 # Install ask CLI: set up ~/.ask, copy config templates, download platform binary.
 set -euo pipefail
 
-ASK_HOME="${ASK_HOME:-$HOME/.ask}"
-ASK_BIN_DIR="$ASK_HOME/bin"
-ASK_BIN="$ASK_BIN_DIR/ask"
+INSTALL_DIR="$HOME/.ask"
+BIN_DIR="$INSTALL_DIR/bin"
+BIN="$BIN_DIR/ask"
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
@@ -41,10 +41,6 @@ detect_platform() {
 DEFAULT_REPO="skkhub/ask-agent"
 
 detect_repo() {
-  if [[ -n "${ASK_REPO:-}" ]]; then
-    REPO="$ASK_REPO"
-    return
-  fi
   if git -C "$REPO_ROOT" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
     local url
     url="$(git -C "$REPO_ROOT" remote get-url origin 2>/dev/null || true)"
@@ -57,10 +53,6 @@ detect_repo() {
 }
 
 detect_version() {
-  if [[ -n "${ASK_VERSION:-}" ]]; then
-    VERSION="${ASK_VERSION#v}"
-    return
-  fi
   if [[ -f "$REPO_ROOT/package.json" ]]; then
     VERSION="$(grep -m1 '"version"' "$REPO_ROOT/package.json" | sed -E 's/.*"version"[[:space:]]*:[[:space:]]*"([^"]+)".*/\1/')"
     [[ -n "$VERSION" ]] && return
@@ -68,7 +60,7 @@ detect_version() {
   need_cmd curl
   info "Fetching latest release version from GitHub…"
   VERSION="$(curl -fsSL "https://api.github.com/repos/${REPO}/releases/latest" | grep -m1 '"tag_name"' | sed -E 's/.*"tag_name"[[:space:]]*:[[:space:]]*"v?([^"]+)".*/\1/')"
-  [[ -n "$VERSION" ]] || die "Could not fetch release version; set ASK_VERSION"
+  [[ -n "$VERSION" ]] || die "Could not fetch release version from GitHub"
 }
 
 fetch_repo_file() {
@@ -87,8 +79,8 @@ download_binary() {
   need_cmd curl
   local url="https://github.com/${REPO}/releases/download/v${VERSION}/${ARTIFACT}"
   info "Downloading ${ARTIFACT} (v${VERSION}) …"
-  curl -fsSL "$url" -o "$ASK_BIN"
-  chmod +x "$ASK_BIN"
+  curl -fsSL "$url" -o "$BIN"
+  chmod +x "$BIN"
 }
 
 print_success() {
@@ -96,16 +88,16 @@ print_success() {
 
 Installation complete!
 
-Install directory: ${ASK_HOME}
-Executable: ${ASK_BIN}
+Install directory: ${INSTALL_DIR}
+Executable: ${BIN}
 
 Add ~/.ask/bin to PATH, e.g. in ~/.zshrc or ~/.bashrc:
   export PATH="\$HOME/.ask/bin:\$PATH"
 
 Next steps:
-  1. Edit ${ASK_HOME}/config.json — model profiles and API key references
+  1. Edit ${INSTALL_DIR}/config.json — model profiles and API key references
   2. Copy and edit environment file:
-       cp ${ASK_HOME}/.env.example ${ASK_HOME}/.env
+       cp ${INSTALL_DIR}/.env.example ${INSTALL_DIR}/.env
      Fill in AI API keys (e.g. DEEPSEEK_API_KEY, ANTHROPIC_API_KEY)
 
 Then run:
@@ -125,18 +117,18 @@ main() {
   detect_version
   info "Repository: ${REPO}, version: v${VERSION}"
 
-  info "Creating ${ASK_HOME} …"
-  mkdir -p "$ASK_BIN_DIR"
+  info "Creating ${INSTALL_DIR} …"
+  mkdir -p "$BIN_DIR"
 
-  if [[ -f "$ASK_HOME/config.json" ]]; then
-    warn "Already exists: ${ASK_HOME}/config.json — skipping"
+  if [[ -f "$INSTALL_DIR/config.json" ]]; then
+    warn "Already exists: ${INSTALL_DIR}/config.json — skipping"
   else
     info "Copying config.json …"
-    fetch_repo_file "config.json" "$ASK_HOME/config.json"
+    fetch_repo_file "config.json" "$INSTALL_DIR/config.json"
   fi
 
   info "Copying .env.example …"
-  fetch_repo_file ".env.example" "$ASK_HOME/.env.example"
+  fetch_repo_file ".env.example" "$INSTALL_DIR/.env.example"
 
   download_binary
   print_success

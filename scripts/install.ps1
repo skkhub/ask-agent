@@ -1,7 +1,7 @@
 # Install ask CLI on Windows: set up ~/.ask, copy config templates, download binary.
 $ErrorActionPreference = "Stop"
 
-$AskHome = if ($env:ASK_HOME) { $env:ASK_HOME } else { Join-Path $env:USERPROFILE ".ask" }
+$AskHome = Join-Path $env:USERPROFILE ".ask"
 $AskBinDir = Join-Path $AskHome "bin"
 $AskBin = Join-Path $AskBinDir "ask.exe"
 $ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
@@ -21,7 +21,6 @@ function Get-PlatformArtifact {
 $DefaultRepo = "skkhub/ask-agent"
 
 function Get-Repo {
-    if ($env:ASK_REPO) { return $env:ASK_REPO }
     Push-Location $RepoRoot
     try {
         $url = git remote get-url origin 2>$null
@@ -33,7 +32,6 @@ function Get-Repo {
 }
 
 function Get-Version([string]$Repo) {
-    if ($env:ASK_VERSION) { return $env:ASK_VERSION.TrimStart('v') }
     $pkg = Join-Path $RepoRoot "package.json"
     if (Test-Path $pkg) {
         $v = (Get-Content $pkg -Raw | ConvertFrom-Json).version

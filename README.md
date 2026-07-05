@@ -14,15 +14,91 @@ A lightweight TypeScript CLI agent. Supports **OpenAI-compatible** APIs (DeepSee
 - **Multi-model routing**: a fast model picks profile + reasoning depth (off/low/high); override with `-p` / `-e`
 - **Minimal deps**: argument parsing uses Node built-in `parseArgs`, no CLI framework
 
-## Quick start
+## Installation
+
+### Install script (recommended)
+
+The install scripts in [`scripts/`](scripts/) set up `~/.ask`, copy `config.json` and `.env.example`, and download a **standalone binary** from GitHub Releases — the target machine does **not** need Node.js installed.
+
+**macOS / Linux:**
+
+```bash
+# One-liner
+curl -fsSL https://raw.githubusercontent.com/skkhub/ask-agent/main/scripts/install.sh | bash
+
+# Or from a local clone
+./scripts/install.sh
+```
+
+**Windows (PowerShell):**
+
+```powershell
+# One-liner
+irm https://raw.githubusercontent.com/skkhub/ask-agent/main/scripts/install.ps1 | iex
+
+# Or from a local clone
+.\scripts\install.ps1
+```
+
+**Supported platforms** (prebuilt binaries):
+
+| Platform | Artifact |
+|---|---|
+| macOS Apple Silicon | `ask-macos-arm64` |
+| Linux x64 | `ask-linux-x64` |
+| Windows x64 | `ask-windows-x64.exe` |
+
+Intel Mac (`darwin-x64`) and Linux arm64 have no prebuilt package — [build from source](#building-a-standalone-executable) instead.
+
+**After install:**
+
+1. Add the binary to your PATH:
+
+   ```bash
+   export PATH="$HOME/.ask/bin:$PATH"   # add to ~/.zshrc or ~/.bashrc
+   ```
+
+   On Windows (PowerShell profile):
+
+   ```powershell
+   $env:Path = "$env:USERPROFILE\.ask\bin;" + $env:Path
+   ```
+
+2. Edit `~/.ask/config.json` — model profiles and API key references.
+3. Copy and fill in API keys:
+
+   ```bash
+   cp ~/.ask/.env.example ~/.ask/.env
+   ```
+
+Then run `ask --help` to verify.
+
+**Update or remove** an existing installation:
+
+```bash
+ask update                    # download latest release
+ask update --version v1.0.0   # install a specific version
+ask uninstall                 # remove ~/.ask (prompts for confirmation)
+ask uninstall -y              # remove without confirmation
+```
+
+### Install from source (development)
 
 Requires Node.js ≥ 23.6 (native TypeScript execution).
 
 ```bash
+git clone https://github.com/skkhub/ask-agent.git
+cd ask-agent
 npm install
 cp .env.example .env   # fill in API keys, or export env vars directly
 npm link               # optional: install `ask` globally
 ```
+
+Without `npm link`, use `node src/cli.ts …` or `npm start -- …`.
+
+Default config path: `~/.ask/config.json` (or place `config.json` / `.env` in the working directory). See [Configuration](#configuration-configjson).
+
+## Quick start
 
 Three usage modes:
 
@@ -38,8 +114,6 @@ git diff | ask "Write a commit message for me"
 # 3. Interactive REPL: run with no arguments
 ask          # or npm start
 ```
-
-Without `npm link`, use `node src/cli.ts …` or `npm start -- …`.
 
 ### Options
 
@@ -60,13 +134,7 @@ Without `npm link`, use `node src/cli.ts …` or `npm start -- …`.
 | `ask update [--version <ver>]` | Download latest (or specified) release binary to `~/.ask/bin` from [skkhub/ask-agent](https://github.com/skkhub/ask-agent) |
 | `ask uninstall [-y]` | Remove entire `~/.ask` directory (config, `.env`, binary). Prompts for confirmation unless `-y` |
 
-Install the binary for the first time with `scripts/install.sh` (macOS/Linux) or `scripts/install.ps1` (Windows). By default both install from `skkhub/ask-agent` releases; set `ASK_REPO=owner/repo` to override (e.g. for a fork).
-
-Add `~/.ask/bin` to your PATH:
-
-```bash
-export PATH="$HOME/.ask/bin:$PATH"
-```
+See [Installation](#installation) for first-time setup via `scripts/install.sh` / `scripts/install.ps1`.
 
 ### Output channels
 
@@ -153,25 +221,9 @@ Push a `v*` tag or manually trigger [Build executable](.github/workflows/build.y
 
 ### Standalone binary setup
 
-Install with the install script (downloads the release binary and copies config templates):
+First-time install: use [`scripts/install.sh`](scripts/install.sh) or [`scripts/install.ps1`](scripts/install.ps1) — see [Installation](#installation).
 
-```bash
-curl -fsSL https://raw.githubusercontent.com/skkhub/ask-agent/main/scripts/install.sh | bash
-# or locally: ./scripts/install.sh
-```
-
-Default repository: `skkhub/ask-agent`. Override with `ASK_REPO=owner/repo` for forks.
-
-Update or remove an existing installation:
-
-```bash
-ask update                    # download latest release
-ask update --version v1.0.0   # install a specific version
-ask uninstall                 # remove ~/.ask (prompts for confirmation)
-ask uninstall -y              # remove without confirmation
-```
-
-The binary does **not** bundle `config.json`. Before first use (if not using the install script):
+The binary does **not** bundle `config.json`. If you copy the binary manually (without the install script):
 
 ```bash
 mkdir -p ~/.ask
