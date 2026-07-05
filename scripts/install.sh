@@ -10,11 +10,11 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 
 info() { printf '==> %s\n' "$*"; }
-warn() { printf '警告: %s\n' "$*" >&2; }
-die() { printf '错误: %s\n' "$*" >&2; exit 1; }
+warn() { printf 'Warning: %s\n' "$*" >&2; }
+die() { printf 'Error: %s\n' "$*" >&2; exit 1; }
 
 need_cmd() {
-  command -v "$1" >/dev/null 2>&1 || die "缺少依赖命令: $1"
+  command -v "$1" >/dev/null 2>&1 || die "Missing required command: $1"
 }
 
 detect_platform() {
@@ -24,15 +24,15 @@ detect_platform() {
   case "$arch" in
     arm64 | aarch64) arch="arm64" ;;
     x86_64 | amd64) arch="x64" ;;
-    *) die "不支持的 CPU 架构: $arch" ;;
+    *) die "Unsupported CPU architecture: $arch" ;;
   esac
 
   case "$os-$arch" in
     darwin-arm64) ARTIFACT="ask-macos-arm64" ;;
-    darwin-x64) ARTIFACT="ask-macos-x64" ;;
+    darwin-x64) die "No prebuilt package for Intel Mac (darwin-x64); build from source" ;;
     linux-x64) ARTIFACT="ask-linux-x64" ;;
-    linux-arm64) die "暂不提供 linux-arm64 预编译包，请从源码构建" ;;
-    *) die "不支持的平台: $os ($arch)" ;;
+    linux-arm64) die "No prebuilt package for linux-arm64; build from source" ;;
+    *) die "Unsupported platform: $os ($arch)" ;;
   esac
 
   PLATFORM="$os-$arch"
@@ -66,9 +66,9 @@ detect_version() {
     [[ -n "$VERSION" ]] && return
   fi
   need_cmd curl
-  info "从 GitHub 获取最新 release 版本…"
+  info "Fetching latest release version from GitHub…"
   VERSION="$(curl -fsSL "https://api.github.com/repos/${REPO}/releases/latest" | grep -m1 '"tag_name"' | sed -E 's/.*"tag_name"[[:space:]]*:[[:space:]]*"v?([^"]+)".*/\1/')"
-  [[ -n "$VERSION" ]] || die "无法获取 release 版本，请设置 ASK_VERSION"
+  [[ -n "$VERSION" ]] || die "Could not fetch release version; set ASK_VERSION"
 }
 
 fetch_repo_file() {
@@ -79,14 +79,14 @@ fetch_repo_file() {
   fi
   need_cmd curl
   local url="https://raw.githubusercontent.com/${REPO}/v${VERSION}/${name}"
-  info "下载 ${name} …"
+  info "Downloading ${name} …"
   curl -fsSL "$url" -o "$dest"
 }
 
 download_binary() {
   need_cmd curl
   local url="https://github.com/${REPO}/releases/download/v${VERSION}/${ARTIFACT}"
-  info "下载 ${ARTIFACT} (v${VERSION}) …"
+  info "Downloading ${ARTIFACT} (v${VERSION}) …"
   curl -fsSL "$url" -o "$ASK_BIN"
   chmod +x "$ASK_BIN"
 }
@@ -94,21 +94,21 @@ download_binary() {
 print_success() {
   cat <<EOF
 
-安装成功！
+Installation complete!
 
-安装目录: ${ASK_HOME}
-可执行文件: ${ASK_BIN}
+Install directory: ${ASK_HOME}
+Executable: ${ASK_BIN}
 
-请将 ~/.ask/bin 加入 PATH，例如在 ~/.zshrc 或 ~/.bashrc 中添加:
+Add ~/.ask/bin to PATH, e.g. in ~/.zshrc or ~/.bashrc:
   export PATH="\$HOME/.ask/bin:\$PATH"
 
-接下来请完成配置:
-  1. 编辑 ${ASK_HOME}/config.json — 设置模型档案与 API 密钥引用
-  2. 复制并编辑环境变量文件:
+Next steps:
+  1. Edit ${ASK_HOME}/config.json — model profiles and API key references
+  2. Copy and edit environment file:
        cp ${ASK_HOME}/.env.example ${ASK_HOME}/.env
-     在 .env 中填入 AI API 密钥（如 DEEPSEEK_API_KEY、ANTHROPIC_API_KEY 等）
+     Fill in AI API keys (e.g. DEEPSEEK_API_KEY, ANTHROPIC_API_KEY)
 
-配置完成后运行:
+Then run:
   ask --help
 
 EOF
@@ -119,23 +119,23 @@ main() {
   need_cmd chmod
 
   detect_platform
-  info "平台: ${PLATFORM}（产物: ${ARTIFACT}）"
+  info "Platform: ${PLATFORM} (artifact: ${ARTIFACT})"
 
   detect_repo
   detect_version
-  info "仓库: ${REPO}，版本: v${VERSION}"
+  info "Repository: ${REPO}, version: v${VERSION}"
 
-  info "创建目录 ${ASK_HOME} …"
+  info "Creating ${ASK_HOME} …"
   mkdir -p "$ASK_BIN_DIR"
 
   if [[ -f "$ASK_HOME/config.json" ]]; then
-    warn "已存在 ${ASK_HOME}/config.json，跳过复制"
+    warn "Already exists: ${ASK_HOME}/config.json — skipping"
   else
-    info "复制 config.json …"
+    info "Copying config.json …"
     fetch_repo_file "config.json" "$ASK_HOME/config.json"
   fi
 
-  info "复制 .env.example …"
+  info "Copying .env.example …"
   fetch_repo_file ".env.example" "$ASK_HOME/.env.example"
 
   download_binary

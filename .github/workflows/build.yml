@@ -13,8 +13,6 @@ jobs:
         include:
           - os: macos-latest
             artifact: ask-macos-arm64
-          - os: macos-13
-            artifact: ask-macos-x64
           - os: ubuntu-latest
             artifact: ask-linux-x64
           - os: windows-latest

@@ -27,7 +27,7 @@ function detectSeaFuse(binary) {
   });
   const match = out.match(/NODE_SEA_FUSE_[0-9a-f]+/);
   if (!match) {
-    throw new Error("在 Node 二进制中找不到 NODE_SEA_FUSE sentinel，无法注入 SEA blob");
+    throw new Error("NODE_SEA_FUSE sentinel not found in Node binary; cannot inject SEA blob");
   }
   return match[0];
 }

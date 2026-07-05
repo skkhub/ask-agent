@@ -41,7 +41,7 @@ export function detectPlatform(): PlatformInfo {
     return { platform: "darwin-arm64", artifact: "ask-macos-arm64" };
   }
   if (os === "darwin" && arch === "x64") {
-    return { platform: "darwin-x64", artifact: "ask-macos-x64" };
+    fail(msg().setupUnsupportedPlatform("darwin-x64 (Intel Mac)"));
   }
   if (os === "linux" && arch === "x64") {
     return { platform: "linux-x64", artifact: "ask-linux-x64" };
