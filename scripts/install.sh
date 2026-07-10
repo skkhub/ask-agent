@@ -96,11 +96,25 @@ detect_repo() {
 
 github_api() {
   local path="$1"
+  local url body status msg
   need_cmd curl
-  curl -fsSL --retry 3 --retry-delay 2 \
+  url="https://api.github.com/repos/${REPO}/${path}"
+  body="$(curl -sSL --retry 3 --retry-delay 2 \
     -H "Accept: application/vnd.github+json" \
     -H "User-Agent: ${CURL_UA}" \
-    "https://api.github.com/repos/${REPO}/${path}"
+    -w '\n%{http_code}' \
+    "$url")"
+
+  status="${body##*$'\n'}"
+  body="${body%$'\n'*}"
+
+  if [[ ! "$status" =~ ^2[0-9][0-9]$ ]]; then
+    msg="$(printf '%s\n' "$body" | sed -n 's/.*"message"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' | head -1)"
+    [[ -n "$msg" ]] || msg="$(printf '%s' "$body" | tr '\n' ' ' | cut -c1-180)"
+    die "GitHub API request failed (${status}) for ${path}: ${msg}"
+  fi
+
+  printf '%s\n' "$body"
 }
 
 detect_version() {
@@ -118,8 +132,18 @@ detect_version() {
     die "Could not read version from local package.json"
   fi
   info "Fetching latest release version from GitHub…"
-  VERSION="$(github_api "releases/latest" | sed -n 's/.*"tag_name"[[:space:]]*:[[:space:]]*"v\?\([^"]*\)".*/\1/p' | head -1)"
-  [[ -n "$VERSION" ]] || die "Could not fetch release version from GitHub"
+  local latest_json
+  latest_json="$(github_api "releases/latest")"
+  VERSION="$(printf '%s\n' "$latest_json" | sed -n 's/.*"tag_name"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' | head -1)"
+  VERSION="${VERSION#v}"
+
+  if [[ -z "$VERSION" ]]; then
+    warn "Could not parse tag_name from releases/latest; trying latest tag…"
+    VERSION="$(github_api "tags?per_page=1" | sed -n 's/.*"name"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' | head -1)"
+    VERSION="${VERSION#v}"
+  fi
+
+  [[ -n "$VERSION" ]] || die "Could not determine version from GitHub (tried releases/latest and tags). Use --version <ver> to install explicitly."
 }
 
 download_with_progress() {
